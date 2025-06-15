@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Music, Music as MusicOff, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Music, Music as MusicOff, ChevronLeft, ChevronRight, RotateCcw, Heart, Star } from 'lucide-react';
 
 // Custom hook for typewriter effect
 const useTypewriter = (text: string, speed: number = 50) => {
@@ -24,17 +24,68 @@ const useTypewriter = (text: string, speed: number = 50) => {
   return { displayedText, isComplete };
 };
 
-// Particle component for the final blessing
-const Particle = ({ delay }: { delay: number }) => {
+// Enhanced particle component with different types
+const Particle = ({ delay, type = 'star' }: { delay: number; type?: 'star' | 'heart' | 'sparkle' }) => {
+  const getParticleContent = () => {
+    switch (type) {
+      case 'heart': return '❤️';
+      case 'sparkle': return '✨';
+      default: return '⭐';
+    }
+  };
+
   return (
     <div 
-      className="absolute w-2 h-2 bg-yellow-300 rounded-full opacity-70 animate-bounce"
+      className="absolute text-lg opacity-70 animate-float pointer-events-none"
+      style={{
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        animationDelay: `${delay}ms`,
+        animationDuration: `${4000 + Math.random() * 3000}ms`
+      }}
+    >
+      {getParticleContent()}
+    </div>
+  );
+};
+
+// Floating hearts animation
+const FloatingHeart = ({ delay }: { delay: number }) => {
+  return (
+    <div 
+      className="absolute text-red-400 opacity-60 animate-pulse pointer-events-none"
       style={{
         left: `${Math.random() * 100}%`,
         animationDelay: `${delay}ms`,
         animationDuration: `${3000 + Math.random() * 2000}ms`
       }}
-    />
+    >
+      <Heart size={16} fill="currentColor" />
+    </div>
+  );
+};
+
+// Sparkle effect for transitions
+const SparkleEffect = ({ show }: { show: boolean }) => {
+  if (!show) return null;
+  
+  return (
+    <div className="fixed inset-0 pointer-events-none z-30">
+      {Array.from({ length: 15 }, (_, i) => (
+        <div
+          key={i}
+          className="absolute animate-ping"
+          style={{
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            animationDelay: `${i * 100}ms`,
+            animationDuration: '2s'
+          }}
+        >
+          <Star size={12} className="text-yellow-400 fill-current" />
+        </div>
+      ))}
+    </div>
   );
 };
 
@@ -42,13 +93,16 @@ function App() {
   const [currentLayer, setCurrentLayer] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [showSparkles, setShowSparkles] = useState(false);
+  const [giftBoxOpened, setGiftBoxOpened] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Sample photos - replace these URLs with actual photos
+  // Updated photos with actual file paths
   const photos = [
-    { url: 'https://placehold.co/400x300/D2B48C/8B4513?text=Replace+with+Dad+Photo+1', caption: '童年时光 - 1985' },
-    { url: 'https://placehold.co/400x300/D2B48C/8B4513?text=Replace+with+Dad+Photo+2', caption: '一起钓鱼 - 1995' },
-    { url: 'https://placehold.co/400x300/D2B48C/8B4513?text=Replace+with+Dad+Photo+3', caption: '毕业典礼 - 2010' },
-    { url: 'https://placehold.co/400x300/D2B48C/8B4513?text=Replace+with+Dad+Photo+4', caption: '全家福 - 2020' },
+    { url: '/蹒跚学步2006-2009.png', caption: '蹒跚学步 - 2006-2009' },
+    { url: '/童年嬉戏2009-2018.png', caption: '童年嬉戏 - 2009-2018' },
+    { url: '/少年学习2018-2024.png', caption: '少年学习 - 2018-2024' },
+    { url: '/漫漫旅途2024-.png', caption: '漫漫旅途 - 2024-' },
   ];
 
   const letterText = `亲爱的爸爸，
@@ -68,7 +122,18 @@ function App() {
   const { displayedText, isComplete } = useTypewriter(letterText, 30);
 
   const nextLayer = () => {
-    setCurrentLayer(prev => prev + 1);
+    setShowSparkles(true);
+    setTimeout(() => {
+      setCurrentLayer(prev => prev + 1);
+      setShowSparkles(false);
+    }, 1000);
+  };
+
+  const openGiftBox = () => {
+    setGiftBoxOpened(true);
+    setTimeout(() => {
+      nextLayer();
+    }, 1500);
   };
 
   const nextPhoto = () => {
@@ -80,62 +145,103 @@ function App() {
   };
 
   const toggleMusic = () => {
-    setIsPlaying(!isPlaying);
-    // Here you would implement actual audio control
-    // const audio = document.getElementById('background-music') as HTMLAudioElement;
-    // if (audio) {
-    //   if (isPlaying) {
-    //     audio.pause();
-    //   } else {
-    //     audio.play();
-    //   }
-    // }
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play().catch(console.error);
+      }
+      setIsPlaying(!isPlaying);
+    }
   };
 
   const restart = () => {
     setCurrentLayer(0);
     setPhotoIndex(0);
+    setGiftBoxOpened(false);
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+    }
   };
 
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#F5F5DC' }}>
-      {/* Background particles for final layer */}
-      {currentLayer === 4 && (
+      {/* Background particles for different layers */}
+      {currentLayer >= 1 && (
         <div className="absolute inset-0 pointer-events-none">
-          {Array.from({ length: 20 }, (_, i) => (
-            <Particle key={i} delay={i * 200} />
+          {Array.from({ length: 8 }, (_, i) => (
+            <FloatingHeart key={i} delay={i * 500} />
           ))}
         </div>
       )}
 
-      {/* Music control */}
+      {currentLayer === 4 && (
+        <div className="absolute inset-0 pointer-events-none">
+          {Array.from({ length: 12 }, (_, i) => (
+            <Particle key={`star-${i}`} delay={i * 300} type="star" />
+          ))}
+          {Array.from({ length: 8 }, (_, i) => (
+            <Particle key={`heart-${i}`} delay={i * 400 + 1000} type="heart" />
+          ))}
+          {Array.from({ length: 10 }, (_, i) => (
+            <Particle key={`sparkle-${i}`} delay={i * 250 + 500} type="sparkle" />
+          ))}
+        </div>
+      )}
+
+      {/* Sparkle transition effect */}
+      <SparkleEffect show={showSparkles} />
+
+      {/* Music control with enhanced animation */}
       <button
         onClick={toggleMusic}
-        className="fixed bottom-4 right-4 z-50 p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110"
+        className={`fixed bottom-4 right-4 z-50 p-3 rounded-full shadow-lg transition-all duration-500 hover:scale-110 ${
+          isPlaying ? 'animate-pulse' : ''
+        }`}
         style={{ backgroundColor: '#D2B48C', color: '#8B4513' }}
       >
         {isPlaying ? <MusicOff size={24} /> : <Music size={24} />}
       </button>
 
-      {/* Audio element - replace src with actual music file */}
-      {/* <audio id="background-music" loop>
-        <source src="path-to-your-music-file.mp3" type="audio/mpeg" />
-      </audio> */}
+      {/* Audio element with actual music file */}
+      <audio ref={audioRef} loop>
+        <source src="/music.mp3" type="audio/mpeg" />
+      </audio>
 
-      {/* Layer 0: Gift Box */}
+      {/* Layer 0: Enhanced Gift Box */}
       {currentLayer === 0 && (
         <div className="flex items-center justify-center min-h-screen p-4">
-          <div 
-            className="text-center cursor-pointer transition-all duration-500 hover:scale-105"
-            onClick={nextLayer}
-          >
+          <div className="text-center">
             <div 
-              className="w-80 h-64 mx-auto mb-6 rounded-lg shadow-2xl flex items-center justify-center relative overflow-hidden transform transition-all duration-700 hover:shadow-3xl"
+              className={`w-80 h-64 mx-auto mb-6 rounded-lg shadow-2xl flex items-center justify-center relative overflow-hidden cursor-pointer transition-all duration-1000 hover:scale-105 ${
+                giftBoxOpened ? 'animate-bounce-slow' : 'animate-gentle-pulse'
+              }`}
               style={{ backgroundColor: '#D2B48C' }}
+              onClick={openGiftBox}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-yellow-200 to-transparent opacity-30"></div>
+              {/* Gift box lid animation */}
+              <div 
+                className={`absolute inset-0 bg-gradient-to-br from-yellow-200 to-transparent transition-all duration-1500 ${
+                  giftBoxOpened ? 'transform -translate-y-full opacity-0' : 'opacity-30'
+                }`}
+              ></div>
+              
+              {/* Ribbon effect */}
+              <div className="absolute inset-0">
+                <div 
+                  className="absolute top-0 left-1/2 transform -translate-x-1/2 w-8 h-full opacity-40"
+                  style={{ backgroundColor: '#8B4513' }}
+                ></div>
+                <div 
+                  className="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-8 opacity-40"
+                  style={{ backgroundColor: '#8B4513' }}
+                ></div>
+              </div>
+              
               <div className="text-center z-10">
-                <div className="text-6xl mb-4">🎁</div>
+                <div className={`text-6xl mb-4 transition-all duration-1000 ${giftBoxOpened ? 'animate-spin' : ''}`}>
+                  🎁
+                </div>
                 <div className="text-xl font-serif" style={{ color: '#8B4513' }}>
                   一份给爸爸的<br />特别礼物
                 </div>
@@ -148,20 +254,23 @@ function App() {
         </div>
       )}
 
-      {/* Layer 1: Opening Greeting */}
+      {/* Layer 1: Enhanced Opening Greeting */}
       {currentLayer === 1 && (
         <div className="flex items-center justify-center min-h-screen p-4">
-          <div className="text-center animate-fade-in">
+          <div className="text-center animate-fade-in-up">
             <div 
-              className="w-96 h-80 mx-auto mb-8 rounded-lg shadow-2xl flex items-center justify-center p-8"
+              className="w-96 h-80 mx-auto mb-8 rounded-lg shadow-2xl flex items-center justify-center p-8 animate-gentle-glow"
               style={{ backgroundColor: '#D2B48C' }}
             >
               <div className="text-center">
-                <h1 className="text-4xl font-serif mb-6 leading-relaxed" style={{ color: '#8B4513' }}>
+                <div className="animate-float mb-4">
+                  <Heart size={48} className="text-red-400 fill-current mx-auto" />
+                </div>
+                <h1 className="text-4xl font-serif mb-6 leading-relaxed animate-text-glow" style={{ color: '#8B4513' }}>
                   致我生命中的<br />
                   <span className="text-5xl font-bold">灯塔与靠山</span>
                 </h1>
-                <div className="w-24 h-1 mx-auto mb-6" style={{ backgroundColor: '#8B4513' }}></div>
+                <div className="w-24 h-1 mx-auto mb-6 animate-expand" style={{ backgroundColor: '#8B4513' }}></div>
                 <p className="text-lg font-serif opacity-80" style={{ color: '#8B4513' }}>
                   父亲节快乐
                 </p>
@@ -169,7 +278,7 @@ function App() {
             </div>
             <button
               onClick={nextLayer}
-              className="px-8 py-3 rounded-full font-serif text-lg transition-all duration-300 hover:scale-105 shadow-lg"
+              className="px-8 py-3 rounded-full font-serif text-lg transition-all duration-300 hover:scale-105 shadow-lg animate-gentle-bounce"
               style={{ backgroundColor: '#8B4513', color: '#F5F5DC' }}
             >
               继续 →
@@ -178,26 +287,31 @@ function App() {
         </div>
       )}
 
-      {/* Layer 2: Letter */}
+      {/* Layer 2: Enhanced Letter */}
       {currentLayer === 2 && (
         <div className="flex items-center justify-center min-h-screen p-4">
           <div className="max-w-2xl w-full">
             <div 
-              className="p-8 rounded-lg shadow-2xl min-h-96"
+              className="p-8 rounded-lg shadow-2xl min-h-96 animate-fade-in-scale"
               style={{ backgroundColor: '#D2B48C' }}
             >
+              {/* Paper texture effect */}
+              <div className="absolute inset-0 opacity-10 rounded-lg" style={{
+                backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, #8B4513 2px, #8B4513 4px)'
+              }}></div>
+              
               <div 
-                className="font-serif text-lg leading-relaxed whitespace-pre-line"
+                className="font-serif text-lg leading-relaxed whitespace-pre-line relative z-10"
                 style={{ color: '#8B4513' }}
               >
                 {displayedText}
-                <span className="animate-pulse">|</span>
+                <span className="animate-pulse text-2xl">|</span>
               </div>
               {isComplete && (
-                <div className="text-center mt-8 animate-fade-in">
+                <div className="text-center mt-8 animate-fade-in-up">
                   <button
                     onClick={nextLayer}
-                    className="px-8 py-3 rounded-full font-serif text-lg transition-all duration-300 hover:scale-105 shadow-lg"
+                    className="px-8 py-3 rounded-full font-serif text-lg transition-all duration-300 hover:scale-105 shadow-lg animate-gentle-bounce"
                     style={{ backgroundColor: '#8B4513', color: '#F5F5DC' }}
                   >
                     翻看我们的回忆 →
@@ -209,28 +323,34 @@ function App() {
         </div>
       )}
 
-      {/* Layer 3: Photo Carousel */}
+      {/* Layer 3: Enhanced Photo Carousel */}
       {currentLayer === 3 && (
         <div className="flex items-center justify-center min-h-screen p-4">
           <div className="max-w-lg w-full">
             <div 
-              className="p-6 rounded-lg shadow-2xl"
+              className="p-6 rounded-lg shadow-2xl animate-fade-in-scale"
               style={{ backgroundColor: '#D2B48C' }}
             >
-              <h2 className="text-2xl font-serif text-center mb-6" style={{ color: '#8B4513' }}>
+              <h2 className="text-2xl font-serif text-center mb-6 animate-text-glow" style={{ color: '#8B4513' }}>
                 珍贵回忆
               </h2>
               
               <div className="relative">
-                <img
-                  src={photos[photoIndex].url}
-                  alt={photos[photoIndex].caption}
-                  className="w-full h-64 object-cover rounded-lg shadow-lg transition-all duration-500"
-                />
+                <div className="overflow-hidden rounded-lg">
+                  <img
+                    src={photos[photoIndex].url}
+                    alt={photos[photoIndex].caption}
+                    className="w-full h-64 object-cover transition-all duration-700 hover:scale-105"
+                    style={{ filter: 'sepia(20%) saturate(1.2)' }}
+                  />
+                </div>
+                
+                {/* Photo frame effect */}
+                <div className="absolute inset-0 border-4 border-white rounded-lg shadow-inner pointer-events-none"></div>
                 
                 <button
                   onClick={prevPhoto}
-                  className="absolute left-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full shadow-lg transition-all duration-300 hover:scale-110"
+                  className="absolute left-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full shadow-lg transition-all duration-300 hover:scale-110 animate-gentle-pulse"
                   style={{ backgroundColor: '#8B4513', color: '#F5F5DC' }}
                 >
                   <ChevronLeft size={20} />
@@ -238,14 +358,14 @@ function App() {
                 
                 <button
                   onClick={nextPhoto}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full shadow-lg transition-all duration-300 hover:scale-110"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full shadow-lg transition-all duration-300 hover:scale-110 animate-gentle-pulse"
                   style={{ backgroundColor: '#8B4513', color: '#F5F5DC' }}
                 >
                   <ChevronRight size={20} />
                 </button>
               </div>
               
-              <p className="text-center mt-4 font-serif text-lg" style={{ color: '#8B4513' }}>
+              <p className="text-center mt-4 font-serif text-lg animate-fade-in" style={{ color: '#8B4513' }}>
                 {photos[photoIndex].caption}
               </p>
               
@@ -253,8 +373,8 @@ function App() {
                 {photos.map((_, index) => (
                   <div
                     key={index}
-                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                      index === photoIndex ? 'opacity-100' : 'opacity-40'
+                    className={`w-2 h-2 rounded-full transition-all duration-500 ${
+                      index === photoIndex ? 'opacity-100 scale-125' : 'opacity-40'
                     }`}
                     style={{ backgroundColor: '#8B4513' }}
                   />
@@ -262,10 +382,10 @@ function App() {
               </div>
               
               {photoIndex === photos.length - 1 && (
-                <div className="text-center mt-6 animate-fade-in">
+                <div className="text-center mt-6 animate-fade-in-up">
                   <button
                     onClick={nextLayer}
-                    className="px-8 py-3 rounded-full font-serif text-lg transition-all duration-300 hover:scale-105 shadow-lg"
+                    className="px-8 py-3 rounded-full font-serif text-lg transition-all duration-300 hover:scale-105 shadow-lg animate-gentle-bounce"
                     style={{ backgroundColor: '#8B4513', color: '#F5F5DC' }}
                   >
                     送上我的祝福 →
@@ -277,29 +397,31 @@ function App() {
         </div>
       )}
 
-      {/* Layer 4: Final Blessing */}
+      {/* Layer 4: Enhanced Final Blessing */}
       {currentLayer === 4 && (
         <div className="flex items-center justify-center min-h-screen p-4 relative">
-          <div className="text-center animate-fade-in z-10">
+          <div className="text-center animate-fade-in-scale z-10">
             <div 
-              className="p-12 rounded-lg shadow-2xl max-w-lg mx-auto"
+              className="p-12 rounded-lg shadow-2xl max-w-lg mx-auto animate-gentle-glow"
               style={{ backgroundColor: '#D2B48C' }}
             >
-              <div className="text-6xl mb-6">🌟</div>
-              <h1 className="text-4xl font-serif mb-6 leading-relaxed" style={{ color: '#8B4513' }}>
+              <div className="text-6xl mb-6 animate-float">🌟</div>
+              <h1 className="text-4xl font-serif mb-6 leading-relaxed animate-text-glow" style={{ color: '#8B4513' }}>
                 父亲节快乐！
               </h1>
-              <p className="text-xl font-serif mb-8 leading-relaxed" style={{ color: '#8B4513' }}>
+              <p className="text-xl font-serif mb-8 leading-relaxed animate-fade-in-up" style={{ color: '#8B4513' }}>
                 愿您永远健康、快乐！<br />
                 愿我们的回忆永远温暖如春！<br />
                 愿您的每一天都充满阳光！
               </p>
-              <div className="text-4xl mb-6">❤️</div>
+              <div className="text-4xl mb-6 animate-pulse">
+                <Heart size={48} className="text-red-400 fill-current mx-auto" />
+              </div>
             </div>
             
             <button
               onClick={restart}
-              className="mt-8 px-6 py-2 rounded-full font-serif transition-all duration-300 hover:scale-105 shadow-lg flex items-center space-x-2 mx-auto"
+              className="mt-8 px-6 py-2 rounded-full font-serif transition-all duration-300 hover:scale-105 shadow-lg flex items-center space-x-2 mx-auto animate-gentle-bounce"
               style={{ backgroundColor: '#8B4513', color: '#F5F5DC' }}
             >
               <RotateCcw size={16} />
@@ -315,8 +437,89 @@ function App() {
           to { opacity: 1; transform: translateY(0); }
         }
         
+        @keyframes fade-in-up {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes fade-in-scale {
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        
+        @keyframes gentle-pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+        
+        @keyframes gentle-bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-5px); }
+        }
+        
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes gentle-glow {
+          0%, 100% { box-shadow: 0 0 20px rgba(139, 69, 19, 0.3); }
+          50% { box-shadow: 0 0 30px rgba(139, 69, 19, 0.5); }
+        }
+        
+        @keyframes text-glow {
+          0%, 100% { text-shadow: 0 0 10px rgba(139, 69, 19, 0.3); }
+          50% { text-shadow: 0 0 20px rgba(139, 69, 19, 0.6); }
+        }
+        
+        @keyframes expand {
+          from { width: 0; }
+          to { width: 6rem; }
+        }
+        
+        @keyframes bounce-slow {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-20px); }
+        }
+        
         .animate-fade-in {
           animation: fade-in 1s ease-out;
+        }
+        
+        .animate-fade-in-up {
+          animation: fade-in-up 1s ease-out;
+        }
+        
+        .animate-fade-in-scale {
+          animation: fade-in-scale 1s ease-out;
+        }
+        
+        .animate-gentle-pulse {
+          animation: gentle-pulse 2s ease-in-out infinite;
+        }
+        
+        .animate-gentle-bounce {
+          animation: gentle-bounce 2s ease-in-out infinite;
+        }
+        
+        .animate-float {
+          animation: float 3s ease-in-out infinite;
+        }
+        
+        .animate-gentle-glow {
+          animation: gentle-glow 3s ease-in-out infinite;
+        }
+        
+        .animate-text-glow {
+          animation: text-glow 3s ease-in-out infinite;
+        }
+        
+        .animate-expand {
+          animation: expand 2s ease-out;
+        }
+        
+        .animate-bounce-slow {
+          animation: bounce-slow 1.5s ease-in-out;
         }
         
         @media (max-width: 768px) {
