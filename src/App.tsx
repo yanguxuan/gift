@@ -119,7 +119,7 @@ function App() {
 
 在这个特别的日子里，我想对您说：您辛苦了，我爱您！
 
-杨宇炫，您永远的孩子`;
+您永远的孩子:杨宇炫`;
 
   const { displayedText, isComplete } = useTypewriter(letterText, 30);
 
@@ -334,7 +334,7 @@ function App() {
               style={{ backgroundColor: '#D2B48C' }}
             >
               <h2 className="text-2xl font-serif text-center mb-6 animate-text-glow" style={{ color: '#8B4513' }}>
-                珍贵回忆
+                成长之旅
               </h2>
               
               <div className="relative">
