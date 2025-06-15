@@ -97,7 +97,7 @@ function App() {
   const [giftBoxOpened, setGiftBoxOpened] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Updated photos with actual file paths
+  // Updated photos with correct paths for Vite public directory
   const photos = [
     { url: '/蹒跚学步2006-2009.png', caption: '蹒跚学步 - 2006-2009' },
     { url: '/童年嬉戏2009-2018.png', caption: '童年嬉戏 - 2009-2018' },
@@ -205,7 +205,7 @@ function App() {
         {isPlaying ? <MusicOff size={24} /> : <Music size={24} />}
       </button>
 
-      {/* Audio element with actual music file */}
+      {/* Audio element with music file from public directory */}
       <audio ref={audioRef} loop>
         <source src="/music.mp3" type="audio/mpeg" />
       </audio>
@@ -344,6 +344,11 @@ function App() {
                     alt={photos[photoIndex].caption}
                     className="w-full h-64 object-cover transition-all duration-700 hover:scale-105"
                     style={{ filter: 'sepia(20%) saturate(1.2)' }}
+                    onError={(e) => {
+                      console.error('Image failed to load:', photos[photoIndex].url);
+                      // Fallback to a placeholder if image fails to load
+                      (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI1NiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjRDJCNDhDIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzhCNDUxMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPuWbnueJh+WKoOi9veS4rS4uLjwvdGV4dD48L3N2Zz4=';
+                    }}
                   />
                 </div>
                 
